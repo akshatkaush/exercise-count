@@ -7,6 +7,7 @@ It can be extended to other exercises as well and they can be auto detected by j
 The model is also scalable to multi person estimation.
 
 To run the application run start-count.py and give filename with type of exercise to be counted.(1 for pushUps, 2 for sitUps, 3 for chinUps)
+
 For eg. python startcount.py --filename test.mp4 --exercise_type 1
 
 Sample Video- https://www.youtube.com/watch?v=djHRAaRSIzs
