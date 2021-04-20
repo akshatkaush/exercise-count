@@ -21,11 +21,11 @@ Sample Video- https://www.youtube.com/watch?v=djHRAaRSIzs
 
 ### examples
 
-<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/chinups_sample.PNG?raw=true" >
+<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/chinups_sample.PNG?raw=true"  >
 
-<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/push_up_sample.PNG?raw=true">
+<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/push_up_sample.PNG?raw=true" width="568.5" height="286.5">
 
-<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/push_up_sample2.PNG?raw=true">
+<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/push_up_sample2.PNG?raw=true" width="568.5" height="286.5">
 
 <img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/squatssample.PNG?raw=true">
 
