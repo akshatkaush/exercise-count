@@ -14,7 +14,7 @@ This works only with video
 ### Run 
 To run the application run start-count.py and give filename with type of exercise to be counted.(1 for pushUps, 2 for sitUps, 3 for chinUps). 
 
-For eg.  ```python startcount.py --filename test.mp4 --exercise_type 1 ```
+For eg.  ```python main.py --filename test.mp4 --exercise_type 1 ```
 
 
 Sample Video- https://www.youtube.com/watch?v=djHRAaRSIzs

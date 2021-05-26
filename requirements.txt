@@ -1,0 +1,4 @@
+vidgear
+opencv-python
+matplotlib
+torch

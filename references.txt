@@ -1,0 +1,2 @@
+https://github.com/stefanopini/simple-HRNet
+https://github.com/duc-tran/infant

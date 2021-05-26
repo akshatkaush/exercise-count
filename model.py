@@ -4,7 +4,7 @@ import torch
 from torchvision.transforms import transforms
 
 from models.hrnet import HRNet
-from models.poseresnet import PoseResNet
+# from models.poseresnet import PoseResNet
 from models.detectors.YOLOv3 import YOLOv3
 
 
@@ -73,7 +73,8 @@ class SimpleHRNet:
         self.nof_joints = nof_joints
         self.checkpoint_path = checkpoint_path
         self.model_name = model_name
-        self.resolution = resolution  # in the form (height, width) as in the original implementation
+        # in the form (height, width) as in the original implementation
+        self.resolution = resolution
         self.interpolation = interpolation
         self.multiperson = multiperson
         self.return_heatmaps = return_heatmaps
@@ -109,7 +110,8 @@ class SimpleHRNet:
                 print("GPU(s) '%s' will be used" % str(self.device))
                 device_ids = [int(x) for x in str(self.device)[5:].split(',')]
 
-            self.model = torch.nn.DataParallel(self.model, device_ids=device_ids)
+            self.model = torch.nn.DataParallel(
+                self.model, device_ids=device_ids)
         elif 'cpu' == str(self.device):
             print("device: 'cpu'")
         else:
@@ -121,7 +123,8 @@ class SimpleHRNet:
         if not self.multiperson:
             self.transform = transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                     0.229, 0.224, 0.225]),
             ])
 
         else:
@@ -133,9 +136,11 @@ class SimpleHRNet:
                                    device=device)
             self.transform = transforms.Compose([
                 transforms.ToPILImage(),
-                transforms.Resize((self.resolution[0], self.resolution[1])),  # (height, width)
+                # (height, width)
+                transforms.Resize((self.resolution[0], self.resolution[1])),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                     0.229, 0.224, 0.225]),
             ])
 
     def predict(self, image):
@@ -182,12 +187,15 @@ class SimpleHRNet:
             if self.resolution is not None:
                 image = cv2.resize(
                     image,
-                    (self.resolution[1], self.resolution[0]),  # (width, height)
+                    # (width, height)
+                    (self.resolution[1], self.resolution[0]),
                     interpolation=self.interpolation
                 )
 
-            images = self.transform(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)).unsqueeze(dim=0)
-            boxes = np.asarray([[0, 0, old_res[1], old_res[0]]], dtype=np.float32)  # [x1, y1, x2, y2]
+            images = self.transform(cv2.cvtColor(
+                image, cv2.COLOR_BGR2RGB)).unsqueeze(dim=0)
+            boxes = np.asarray([[0, 0, old_res[1], old_res[0]]],
+                               dtype=np.float32)  # [x1, y1, x2, y2]
             heatmaps = np.zeros((1, self.nof_joints, self.resolution[0] // 4, self.resolution[1] // 4),
                                 dtype=np.float32)
 
@@ -196,7 +204,8 @@ class SimpleHRNet:
 
             nof_people = len(detections) if detections is not None else 0
             boxes = np.empty((nof_people, 4), dtype=np.int32)
-            images = torch.empty((nof_people, 3, self.resolution[0], self.resolution[1]))  # (height, width)
+            images = torch.empty(
+                (nof_people, 3, self.resolution[0], self.resolution[1]))  # (height, width)
             heatmaps = np.zeros((nof_people, self.nof_joints, self.resolution[0] // 4, self.resolution[1] // 4),
                                 dtype=np.float32)
 
@@ -208,7 +217,8 @@ class SimpleHRNet:
                     y2 = int(round(y2.item()))
 
                     # Adapt detections to match HRNet input aspect ratio (as suggested by xtyDoge in issue #14)
-                    correction_factor = self.resolution[0] / self.resolution[1] * (x2 - x1) / (y2 - y1)
+                    correction_factor = self.resolution[0] / \
+                        self.resolution[1] * (x2 - x1) / (y2 - y1)
                     if correction_factor > 1:
                         # increase y side
                         center = y1 + (y2 - y1) // 2
@@ -234,11 +244,13 @@ class SimpleHRNet:
 
                 else:
                     out = torch.empty(
-                        (images.shape[0], self.nof_joints, self.resolution[0] // 4, self.resolution[1] // 4),
+                        (images.shape[0], self.nof_joints,
+                         self.resolution[0] // 4, self.resolution[1] // 4),
                         device=self.device
                     )
                     for i in range(0, len(images), self.max_batch_size):
-                        out[i:i + self.max_batch_size] = self.model(images[i:i + self.max_batch_size])
+                        out[i:i + self.max_batch_size] = self.model(
+                            images[i:i + self.max_batch_size])
 
             out = out.detach().cpu().numpy()
             pts = np.empty((out.shape[0], out.shape[1], 3), dtype=np.float32)
@@ -246,12 +258,17 @@ class SimpleHRNet:
             for i, human in enumerate(out):
                 heatmaps[i] = human
                 for j, joint in enumerate(human):
-                    pt = np.unravel_index(np.argmax(joint), (self.resolution[0] // 4, self.resolution[1] // 4))
+                    pt = np.unravel_index(
+                        np.argmax(joint), (self.resolution[0] // 4, self.resolution[1] // 4))
                     # 0: pt_y / (height // 4) * (bb_y2 - bb_y1) + bb_y1
                     # 1: pt_x / (width // 4) * (bb_x2 - bb_x1) + bb_x1
                     # 2: confidences
-                    pts[i, j, 0] = pt[0] * 1. / (self.resolution[0] // 4) * (boxes[i][3] - boxes[i][1]) + boxes[i][1]
-                    pts[i, j, 1] = pt[1] * 1. / (self.resolution[1] // 4) * (boxes[i][2] - boxes[i][0]) + boxes[i][0]
+                    pts[i, j, 0] = pt[0] * 1. / \
+                        (self.resolution[0] // 4) * (boxes[i]
+                                                     [3] - boxes[i][1]) + boxes[i][1]
+                    pts[i, j, 1] = pt[1] * 1. / \
+                        (self.resolution[1] // 4) * (boxes[i]
+                                                     [2] - boxes[i][0]) + boxes[i][0]
                     pts[i, j, 2] = joint[pt]
 
         else:
@@ -274,15 +291,18 @@ class SimpleHRNet:
             old_res = images[0].shape
 
             if self.resolution is not None:
-                images_tensor = torch.empty(images.shape[0], 3, self.resolution[0], self.resolution[1])
+                images_tensor = torch.empty(
+                    images.shape[0], 3, self.resolution[0], self.resolution[1])
             else:
-                images_tensor = torch.empty(images.shape[0], 3, images.shape[1], images.shape[2])
+                images_tensor = torch.empty(
+                    images.shape[0], 3, images.shape[1], images.shape[2])
 
             for i, image in enumerate(images):
                 if self.resolution is not None:
                     image = cv2.resize(
                         image,
-                        (self.resolution[1], self.resolution[0]),  # (width, height)
+                        # (width, height)
+                        (self.resolution[1], self.resolution[0]),
                         interpolation=self.interpolation
                     )
 
@@ -301,9 +321,11 @@ class SimpleHRNet:
             image_detections = self.detector.predict(images)
 
             base_index = 0
-            nof_people = int(np.sum([len(d) for d in image_detections if d is not None]))
+            nof_people = int(
+                np.sum([len(d) for d in image_detections if d is not None]))
             boxes = np.empty((nof_people, 4), dtype=np.int32)
-            images_tensor = torch.empty((nof_people, 3, self.resolution[0], self.resolution[1]))  # (height, width)
+            images_tensor = torch.empty(
+                (nof_people, 3, self.resolution[0], self.resolution[1]))  # (height, width)
             heatmaps = np.zeros((nof_people, self.nof_joints, self.resolution[0] // 4, self.resolution[1] // 4),
                                 dtype=np.float32)
 
@@ -317,7 +339,8 @@ class SimpleHRNet:
                         y2 = int(round(y2.item()))
 
                         # Adapt detections to match HRNet input aspect ratio (as suggested by xtyDoge in issue #14)
-                        correction_factor = self.resolution[0] / self.resolution[1] * (x2 - x1) / (y2 - y1)
+                        correction_factor = self.resolution[0] / \
+                            self.resolution[1] * (x2 - x1) / (y2 - y1)
                         if correction_factor > 1:
                             # increase y side
                             center = y1 + (y2 - y1) // 2
@@ -327,12 +350,14 @@ class SimpleHRNet:
                         elif correction_factor < 1:
                             # increase x side
                             center = x1 + (x2 - x1) // 2
-                            length = int(round((x2 - x1) * 1 / correction_factor))
+                            length = int(
+                                round((x2 - x1) * 1 / correction_factor))
                             x1 = max(0, center - length // 2)
                             x2 = min(image.shape[1], center + length // 2)
 
                         boxes[base_index + i] = [x1, y1, x2, y2]
-                        images_tensor[base_index + i] = self.transform(image[y1:y2, x1:x2, ::-1])
+                        images_tensor[base_index +
+                                      i] = self.transform(image[y1:y2, x1:x2, ::-1])
 
                     base_index += len(detections)
 
@@ -347,11 +372,13 @@ class SimpleHRNet:
 
                 else:
                     out = torch.empty(
-                        (images.shape[0], self.nof_joints, self.resolution[0] // 4, self.resolution[1] // 4),
+                        (images.shape[0], self.nof_joints,
+                         self.resolution[0] // 4, self.resolution[1] // 4),
                         device=self.device
                     )
                     for i in range(0, len(images), self.max_batch_size):
-                        out[i:i + self.max_batch_size] = self.model(images[i:i + self.max_batch_size])
+                        out[i:i + self.max_batch_size] = self.model(
+                            images[i:i + self.max_batch_size])
 
             out = out.detach().cpu().numpy()
             pts = np.empty((out.shape[0], out.shape[1], 3), dtype=np.float32)
@@ -359,12 +386,17 @@ class SimpleHRNet:
             for i, human in enumerate(out):
                 heatmaps[i] = human
                 for j, joint in enumerate(human):
-                    pt = np.unravel_index(np.argmax(joint), (self.resolution[0] // 4, self.resolution[1] // 4))
+                    pt = np.unravel_index(
+                        np.argmax(joint), (self.resolution[0] // 4, self.resolution[1] // 4))
                     # 0: pt_y / (height // 4) * (bb_y2 - bb_y1) + bb_y1
                     # 1: pt_x / (width // 4) * (bb_x2 - bb_x1) + bb_x1
                     # 2: confidences
-                    pts[i, j, 0] = pt[0] * 1. / (self.resolution[0] // 4) * (boxes[i][3] - boxes[i][1]) + boxes[i][1]
-                    pts[i, j, 1] = pt[1] * 1. / (self.resolution[1] // 4) * (boxes[i][2] - boxes[i][0]) + boxes[i][0]
+                    pts[i, j, 0] = pt[0] * 1. / \
+                        (self.resolution[0] // 4) * (boxes[i]
+                                                     [3] - boxes[i][1]) + boxes[i][1]
+                    pts[i, j, 1] = pt[1] * 1. / \
+                        (self.resolution[1] // 4) * (boxes[i]
+                                                     [2] - boxes[i][0]) + boxes[i][0]
                     pts[i, j, 2] = joint[pt]
 
             if self.multiperson:
@@ -379,17 +411,21 @@ class SimpleHRNet:
                     if detections is not None:
                         pts_batch.append(pts[index:index + len(detections)])
                         if self.return_heatmaps:
-                            heatmaps_batch.append(heatmaps[index:index + len(detections)])
+                            heatmaps_batch.append(
+                                heatmaps[index:index + len(detections)])
                         if self.return_bounding_boxes:
-                            boxes_batch.append(boxes[index:index + len(detections)])
+                            boxes_batch.append(
+                                boxes[index:index + len(detections)])
                         index += len(detections)
                     else:
-                        pts_batch.append(np.zeros((0, self.nof_joints, 3), dtype=np.float32))
+                        pts_batch.append(
+                            np.zeros((0, self.nof_joints, 3), dtype=np.float32))
                         if self.return_heatmaps:
                             heatmaps_batch.append(np.zeros((0, self.nof_joints, self.resolution[0] // 4,
                                                             self.resolution[1] // 4), dtype=np.float32))
                         if self.return_bounding_boxes:
-                            boxes_batch.append(np.zeros((0, 4), dtype=np.float32))
+                            boxes_batch.append(
+                                np.zeros((0, 4), dtype=np.float32))
                 if self.return_heatmaps:
                     heatmaps = heatmaps_batch
                 if self.return_bounding_boxes:
@@ -404,7 +440,8 @@ class SimpleHRNet:
             if self.multiperson:
                 pts = []
                 for _ in range(len(image_detections)):
-                    pts.append(np.zeros((0, self.nof_joints, 3), dtype=np.float32))
+                    pts.append(
+                        np.zeros((0, self.nof_joints, 3), dtype=np.float32))
             else:
                 raise ValueError  # should never happen
 
