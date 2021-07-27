@@ -1,4 +1,8 @@
 # exercise-count
+
+Sample Video- https://www.youtube.com/watch?v=djHRAaRSIzs
+
+
 This projects couts the repetitions of common exercises. Here I have provided support for pushups, chinups and squats. It can also tell whether you are doing a complete rep or an incomplete repetition. It can be extended to other exercises as well and they can be auto detected by just noting the angles between different joints.
 The model is also scalable to multi person estimation.
 
@@ -17,7 +21,6 @@ To run the application run start-count.py and give filename with type of exercis
 For eg.  ```python main.py --filename test.mp4 --exercise_type 1 ```
 
 
-Sample Video- https://www.youtube.com/watch?v=djHRAaRSIzs
 
 ### examples
 
