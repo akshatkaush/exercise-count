@@ -26,12 +26,16 @@ class StageModule(nn.Module):
             self.fuse_layers.append(nn.ModuleList())
             for j in range(self.stage):  # for each branch
                 if i == j:
-                    self.fuse_layers[-1].append(nn.Sequential())  # Used in place of "None" because it is callable
+                    # Used in place of "None" because it is callable
+                    self.fuse_layers[-1].append(nn.Sequential())
                 elif i < j:
                     self.fuse_layers[-1].append(nn.Sequential(
-                        nn.Conv2d(c * (2 ** j), c * (2 ** i), kernel_size=(1, 1), stride=(1, 1), bias=False),
-                        nn.BatchNorm2d(c * (2 ** i), eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-                        nn.Upsample(scale_factor=(2.0 ** (j - i)), mode='nearest'),
+                        nn.Conv2d(c * (2 ** j), c * (2 ** i),
+                                  kernel_size=(1, 1), stride=(1, 1), bias=False),
+                        nn.BatchNorm2d(
+                            c * (2 ** i), eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                        nn.Upsample(scale_factor=(
+                            2.0 ** (j - i)), mode='nearest'),
                     ))
                 elif i > j:
                     ops = []
@@ -46,7 +50,8 @@ class StageModule(nn.Module):
                     ops.append(nn.Sequential(
                         nn.Conv2d(c * (2 ** j), c * (2 ** i), kernel_size=(3, 3), stride=(2, 2), padding=(1, 1),
                                   bias=False),
-                        nn.BatchNorm2d(c * (2 ** i), eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+                        nn.BatchNorm2d(
+                            c * (2 ** i), eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
                     ))
                     self.fuse_layers[-1].append(nn.Sequential(*ops))
 
@@ -76,16 +81,21 @@ class HRNet(nn.Module):
         super(HRNet, self).__init__()
 
         # Input (stem net)
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
-        self.bn1 = nn.BatchNorm2d(64, eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True)
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
-        self.bn2 = nn.BatchNorm2d(64, eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=(
+            3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        self.bn1 = nn.BatchNorm2d(
+            64, eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=(
+            3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        self.bn2 = nn.BatchNorm2d(
+            64, eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True)
         self.relu = nn.ReLU(inplace=True)
 
         # Stage 1 (layer1)      - First group of bottleneck (resnet) modules
         downsample = nn.Sequential(
             nn.Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False),
-            nn.BatchNorm2d(256, eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True),
+            nn.BatchNorm2d(256, eps=1e-05, momentum=bn_momentum,
+                           affine=True, track_running_stats=True),
         )
         self.layer1 = nn.Sequential(
             Bottleneck(64, 64, downsample=downsample),
@@ -97,20 +107,25 @@ class HRNet(nn.Module):
         # Fusion layer 1 (transition1)      - Creation of the first two branches (one full and one half resolution)
         self.transition1 = nn.ModuleList([
             nn.Sequential(
-                nn.Conv2d(256, c, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False),
-                nn.BatchNorm2d(c, eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True),
+                nn.Conv2d(256, c, kernel_size=(3, 3), stride=(
+                    1, 1), padding=(1, 1), bias=False),
+                nn.BatchNorm2d(c, eps=1e-05, momentum=bn_momentum,
+                               affine=True, track_running_stats=True),
                 nn.ReLU(inplace=True),
             ),
             nn.Sequential(nn.Sequential(  # Double Sequential to fit with official pretrained weights
-                nn.Conv2d(256, c * (2 ** 1), kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False),
-                nn.BatchNorm2d(c * (2 ** 1), eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True),
+                nn.Conv2d(256, c * (2 ** 1), kernel_size=(3, 3),
+                          stride=(2, 2), padding=(1, 1), bias=False),
+                nn.BatchNorm2d(c * (2 ** 1), eps=1e-05, momentum=bn_momentum,
+                               affine=True, track_running_stats=True),
                 nn.ReLU(inplace=True),
             )),
         ])
 
         # Stage 2 (stage2)      - Second module with 1 group of bottleneck (resnet) modules. This has 2 branches
         self.stage2 = nn.Sequential(
-            StageModule(stage=2, output_branches=2, c=c, bn_momentum=bn_momentum),
+            StageModule(stage=2, output_branches=2,
+                        c=c, bn_momentum=bn_momentum),
         )
 
         # Fusion layer 2 (transition2)      - Creation of the third branch (1/4 resolution)
@@ -118,18 +133,24 @@ class HRNet(nn.Module):
             nn.Sequential(),  # None,   - Used in place of "None" because it is callable
             nn.Sequential(),  # None,   - Used in place of "None" because it is callable
             nn.Sequential(nn.Sequential(  # Double Sequential to fit with official pretrained weights
-                nn.Conv2d(c * (2 ** 1), c * (2 ** 2), kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False),
-                nn.BatchNorm2d(c * (2 ** 2), eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True),
+                nn.Conv2d(c * (2 ** 1), c * (2 ** 2), kernel_size=(3, 3),
+                          stride=(2, 2), padding=(1, 1), bias=False),
+                nn.BatchNorm2d(c * (2 ** 2), eps=1e-05, momentum=bn_momentum,
+                               affine=True, track_running_stats=True),
                 nn.ReLU(inplace=True),
             )),  # ToDo Why the new branch derives from the "upper" branch only?
         ])
 
         # Stage 3 (stage3)      - Third module with 4 groups of bottleneck (resnet) modules. This has 3 branches
         self.stage3 = nn.Sequential(
-            StageModule(stage=3, output_branches=3, c=c, bn_momentum=bn_momentum),
-            StageModule(stage=3, output_branches=3, c=c, bn_momentum=bn_momentum),
-            StageModule(stage=3, output_branches=3, c=c, bn_momentum=bn_momentum),
-            StageModule(stage=3, output_branches=3, c=c, bn_momentum=bn_momentum),
+            StageModule(stage=3, output_branches=3,
+                        c=c, bn_momentum=bn_momentum),
+            StageModule(stage=3, output_branches=3,
+                        c=c, bn_momentum=bn_momentum),
+            StageModule(stage=3, output_branches=3,
+                        c=c, bn_momentum=bn_momentum),
+            StageModule(stage=3, output_branches=3,
+                        c=c, bn_momentum=bn_momentum),
         )
 
         # Fusion layer 3 (transition3)      - Creation of the fourth branch (1/8 resolution)
@@ -138,21 +159,27 @@ class HRNet(nn.Module):
             nn.Sequential(),  # None,   - Used in place of "None" because it is callable
             nn.Sequential(),  # None,   - Used in place of "None" because it is callable
             nn.Sequential(nn.Sequential(  # Double Sequential to fit with official pretrained weights
-                nn.Conv2d(c * (2 ** 2), c * (2 ** 3), kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False),
-                nn.BatchNorm2d(c * (2 ** 3), eps=1e-05, momentum=bn_momentum, affine=True, track_running_stats=True),
+                nn.Conv2d(c * (2 ** 2), c * (2 ** 3), kernel_size=(3, 3),
+                          stride=(2, 2), padding=(1, 1), bias=False),
+                nn.BatchNorm2d(c * (2 ** 3), eps=1e-05, momentum=bn_momentum,
+                               affine=True, track_running_stats=True),
                 nn.ReLU(inplace=True),
             )),  # ToDo Why the new branch derives from the "upper" branch only?
         ])
 
         # Stage 4 (stage4)      - Fourth module with 3 groups of bottleneck (resnet) modules. This has 4 branches
         self.stage4 = nn.Sequential(
-            StageModule(stage=4, output_branches=4, c=c, bn_momentum=bn_momentum),
-            StageModule(stage=4, output_branches=4, c=c, bn_momentum=bn_momentum),
-            StageModule(stage=4, output_branches=1, c=c, bn_momentum=bn_momentum),
+            StageModule(stage=4, output_branches=4,
+                        c=c, bn_momentum=bn_momentum),
+            StageModule(stage=4, output_branches=4,
+                        c=c, bn_momentum=bn_momentum),
+            StageModule(stage=4, output_branches=1,
+                        c=c, bn_momentum=bn_momentum),
         )
 
         # Final layer (final_layer)
-        self.final_layer = nn.Conv2d(c, nof_joints, kernel_size=(1, 1), stride=(1, 1))
+        self.final_layer = nn.Conv2d(
+            c, nof_joints, kernel_size=(1, 1), stride=(1, 1))
 
     def forward(self, x):
         x = self.conv1(x)
@@ -163,7 +190,8 @@ class HRNet(nn.Module):
         x = self.relu(x)
 
         x = self.layer1(x)
-        x = [trans(x) for trans in self.transition1]  # Since now, x is a list (# == nof branches)
+        # Since now, x is a list (# == nof branches)
+        x = [trans(x) for trans in self.transition1]
 
         x = self.stage2(x)
         # x = [trans(x[-1]) for trans in self.transition2]    # New branch derives from the "upper" branch only

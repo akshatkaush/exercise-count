@@ -1,4 +1,6 @@
 from __future__ import division
+from .yolo.utils.utils import load_classes, non_max_suppression
+from .yolo.models import Darknet
 
 import os
 import sys
@@ -7,14 +9,10 @@ import numpy as np
 import torch
 from torchvision.transforms import transforms
 
-sys.path.append(os.path.join(os.getcwd(), 'models', 'detectors', 'yolo'))
-
-from .yolo.models import Darknet
-from .yolo.utils.utils import load_classes, non_max_suppression
-
 
 def filter_classes(detections, classes):
-    mask = torch.stack([torch.stack([detections[:, -1] == cls]) for cls in classes])
+    mask = torch.stack([torch.stack([detections[:, -1] == cls])
+                        for cls in classes])
     mask = torch.sum(torch.squeeze(mask, dim=1), dim=0)
     return detections[mask > 0]
 
@@ -29,10 +27,10 @@ def letterbox(img, new_shape=416, color=(127.5, 127.5, 127.5), mode='auto'):
         ratio = max(new_shape) / max(shape)  # ratio  = new / old
     new_unpad = (int(round(shape[1] * ratio)), int(round(shape[0] * ratio)))
 
-    if mode is 'auto':  # minimum rectangle
+    if mode == 'auto':  # minimum rectangle
         dw = np.mod(new_shape - new_unpad[0], 32) / 2  # width padding
         dh = np.mod(new_shape - new_unpad[1], 32) / 2  # height padding
-    elif mode is 'square':  # square
+    elif mode == 'square':  # square
         dw = (new_shape - new_unpad[0]) / 2  # width padding
         dh = (new_shape - new_unpad[1]) / 2  # height padding
     else:
@@ -40,8 +38,10 @@ def letterbox(img, new_shape=416, color=(127.5, 127.5, 127.5), mode='auto'):
 
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)  # resized, no border
-    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # padded square
+    # resized, no border
+    img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
+    img = cv2.copyMakeBorder(img, top, bottom, left, right,
+                             cv2.BORDER_CONSTANT, value=color)  # padded square
     return img, ratio, dw, dh
 
 
@@ -49,16 +49,20 @@ def letterbox(img, new_shape=416, color=(127.5, 127.5, 127.5), mode='auto'):
 def scale_coords(coords, from_image_shape, to_image_shape):
     # Rescale coords (xyxy) from from_image_shape to to_image_shape
     gain = max(from_image_shape) / max(to_image_shape)  # gain  = old / new
-    coords[:, [0, 2]] -= (from_image_shape[1] - to_image_shape[1] * gain) / 2  # x padding
-    coords[:, [1, 3]] -= (from_image_shape[0] - to_image_shape[0] * gain) / 2  # y padding
+    coords[:, [0, 2]] -= (from_image_shape[1] -
+                          to_image_shape[1] * gain) / 2  # x padding
+    coords[:, [1, 3]] -= (from_image_shape[0] -
+                          to_image_shape[0] * gain) / 2  # y padding
     coords[:, :4] /= gain
     coords[:, :4] = coords[:, :4].clamp(min=0)
     return coords
 
 
 def prepare_data(images, color_mode='BGR', new_shape=416, color=(127.5, 127.5, 127.5), mode='square'):
-    images_ok = np.zeros((images.shape[0], new_shape, new_shape, 3), dtype=images[0].dtype)
-    images_tensor = torch.zeros((images.shape[0], 3, new_shape, new_shape), dtype=torch.float32)
+    images_ok = np.zeros(
+        (images.shape[0], new_shape, new_shape, 3), dtype=images[0].dtype)
+    images_tensor = torch.zeros(
+        (images.shape[0], 3, new_shape, new_shape), dtype=torch.float32)
     for i in range(len(images)):
         if color_mode == 'BGR':
             images[i] = cv2.cvtColor(images[i], cv2.COLOR_BGR2RGB)
@@ -109,7 +113,8 @@ class YOLOv3:
 
         self.model.eval()  # Set in evaluation mode
 
-        self.classes_file = load_classes(class_path)  # Extracts class labels from file
+        # Extracts class labels from file
+        self.classes_file = load_classes(class_path)
         self.classes = classes
 
         self.classes_id = []
@@ -128,14 +133,19 @@ class YOLOv3:
             if len(images_rescaled) <= self.max_batch_size:
                 detections = self.model(images_rescaled)
             else:
-                detections = torch.empty((images_rescaled.shape[0], 10647, 85)).to(self.device)
+                detections = torch.empty(
+                    (images_rescaled.shape[0], 10647, 85)).to(self.device)
                 for i in range(0, len(images_rescaled), self.max_batch_size):
-                    detections[i:i + self.max_batch_size] = self.model(images_rescaled[i:i + self.max_batch_size]).detach()
+                    detections[i:i + self.max_batch_size] = self.model(
+                        images_rescaled[i:i + self.max_batch_size]).detach()
 
-            detections = non_max_suppression(detections, self.conf_thres, self.nms_thres)
+            detections = non_max_suppression(
+                detections, self.conf_thres, self.nms_thres)
             for i in range(len(images)):
                 if detections[i] is not None:
-                    detections[i] = filter_classes(detections[i], self.classes_id)
-                    detections[i] = scale_coords(detections[i], images_rescaled[i].shape[1:], images[i].shape[:2])
+                    detections[i] = filter_classes(
+                        detections[i], self.classes_id)
+                    detections[i] = scale_coords(
+                        detections[i], images_rescaled[i].shape[1:], images[i].shape[:2])
 
             return detections

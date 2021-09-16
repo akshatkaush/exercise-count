@@ -1,0 +1,13 @@
+*__pycache__*
+weights/pose_hrnet_w48_384x288.pth
+debug*.py
+tempCodeRunnerFile.py
+.vscode
+input*.*
+demo/*
+main_copy.py
+misc/visualization_copy.py
+demo
+*.mp4
+*.pth
+*__init__.py

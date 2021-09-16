@@ -240,7 +240,7 @@ if __name__ == '__main__':
     parser.add_argument("--exercise_type", "-et",
                         help="1 for pushups, 2 for squats, 3 for pullups", type=int, default=1)
     parser.add_argument("--hrnet_weights", "-w", help="hrnet parameters - path to the pretrained weights",
-                        type=str, default="C:/Users/Dell/Desktop/exercise-count/weights/w32_256×192.pth")
+                        type=str, default="./weights/w32_256×192.pth")
     parser.add_argument("--image_resolution", "-r",
                         help="image resolution", type=str, default='(256,192)')
     # help="image resolution", type=str, default='(384, 288)')

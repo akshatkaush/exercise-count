@@ -5,6 +5,11 @@ import torch
 import torchvision
 import ffmpeg
 import math
+# points_color_palette='gist_rainbow', skeleton_color_palette='jet',
+# points_palette_samples=10,
+
+colors = np.round(np.array(plt.get_cmap('gist_rainbow')(
+    np.linspace(0, 1, 16))) * 255).astype(np.uint8)[:, -2::-1].tolist()
 
 
 def joints_dict():
@@ -34,8 +39,10 @@ def joints_dict():
                 # # [7, 9], [8, 10], [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]
                 # [15, 13], [13, 11], [16, 14], [14, 12], [11, 12], [5, 11], [6, 12], [5, 6], [5, 7],
                 # [6, 8], [7, 9], [8, 10], [1, 2], [0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 6]
-                [15, 13], [13, 11], [16, 14], [14, 12], [11, 12], [5, 11], [6, 12], [5, 6], [5, 7],
-                [6, 8], [7, 9], [8, 10], [1, 2], [0, 1], [0, 2], [1, 3], [2, 4],  # [3, 5], [4, 6]
+                [15, 13], [13, 11], [16, 14], [14, 12], [
+                    11, 12], [5, 11], [6, 12], [5, 6], [5, 7],
+                [6, 8], [7, 9], [8, 10], [1, 2], [0, 1], [
+                    0, 2], [1, 3], [2, 4],  # [3, 5], [4, 6]
                 [0, 5], [0, 6]
             ]
         },
@@ -61,188 +68,117 @@ def joints_dict():
             "skeleton": [
                 # [5, 4], [4, 3], [0, 1], [1, 2], [3, 2], [13, 3], [12, 2], [13, 12], [13, 14],
                 # [12, 11], [14, 15], [11, 10], # [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]
-                [5, 4], [4, 3], [0, 1], [1, 2], [3, 2], [3, 6], [2, 6], [6, 7], [7, 8], [8, 9],
+                [5, 4], [4, 3], [0, 1], [1, 2], [3, 2], [
+                    3, 6], [2, 6], [6, 7], [7, 8], [8, 9],
                 [13, 7], [12, 7], [13, 14], [12, 11], [14, 15], [11, 10],
             ]
         },
     }
     return joints
 
-def draw_points_chinups(image, points, color_palette='tab20', palette_samples=16, confidence_threshold=0.5):
-    
-    try:
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette).colors) * 255
-        ).astype(np.uint8)[:, ::-1].tolist()
-    except AttributeError:  # if palette has not pre-defined colors
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
-        ).astype(np.uint8)[:, -2::-1].tolist()
 
-    circle_size = max(1, min(image.shape[:2]) // 160)  # ToDo Shape it taking into account the size of the detection
-    # circle_size = max(2, int(np.sqrt(np.max(np.max(points, axis=0) - np.min(points, axis=0)) // 16)))
-    count=0
-    y1=0
-    y2=0
-    y3=0
-    ylw=points[9][0]
-    yrw=points[10][0]
-    z1,z2,z3=0,0,0
-    
+def draw_points_front(image, points, exercise_type,  confidence_threshold=0.5):
+
+    circle_size = max(1, min(image.shape[:2]) // 160)
+
+    y0 = 0
+    y1 = 0
+    y2 = 0
+    ylw = points[9][0]
+    yrw = points[10][0]
+    yls = points[5][0]
+    yrs = points[6][0]
+    z0, z1, z2 = 0, 0, 0
+
     for i, pt in enumerate(points):
         if pt[2] > confidence_threshold:
-            image = cv2.circle(image, (int(pt[1]), int(pt[0])), circle_size, tuple(colors[i % len(colors)]), -1)
-            font = cv2.FONT_HERSHEY_SIMPLEX 
+            image = cv2.circle(image, (int(pt[1]), int(
+                pt[0])), circle_size, tuple(colors[i % len(colors)]), -1)
+            font = cv2.FONT_HERSHEY_SIMPLEX
             org = (pt[1], pt[0])
             fontScale = 1
             color = (255, 255, 255)
             thickness = 2
-            image = cv2.putText(image, str(i) , org, font,  
-                   fontScale, color, thickness, cv2.LINE_AA)
-           
-        if i==0:
-            #x1=pt[1]
-            y1=pt[0] 
-            z1=pt[2]
-            #print(x1," ",y1)
-        if i==1:
-            #x2=pt[1]
-            y2=pt[0]
-            z2=pt[2]
-            #print(x2," ",y2) 
-        if i==2:
-            #x3=pt[1]
-            y3=pt[0]
-            z3=pt[2]
-            #print(x3," ",y3)
-            
-        dist=distance(y1,y2,y3,z1,z2,z3,ylw,yrw)            
-            
-    return image,dist
+            image = cv2.putText(image, str(i), org, font,
+                                fontScale, color, thickness, cv2.LINE_AA)
 
-def draw_points_situps(image, points, color_palette='tab20', palette_samples=16, confidence_threshold=0.5):
-    
-    try:
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette).colors) * 255
-        ).astype(np.uint8)[:, ::-1].tolist()
-    except AttributeError:  # if palette has not pre-defined colors
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
-        ).astype(np.uint8)[:, -2::-1].tolist()
+        if exercise_type == 3:
 
-    circle_size = max(1, min(image.shape[:2]) // 160)  # ToDo Shape it taking into account the size of the detection
-    # circle_size = max(2, int(np.sqrt(np.max(np.max(points, axis=0) - np.min(points, axis=0)) // 16)))
-    count=0
-    x1=0
-    x2=0
-    y1=0
-    y2=0
-    x3=0
-    y3=0
-    xn=points[0][1]
-    xlh=points[11][1]
-    xrh=points[12][1]
-    if(xn<xlh or xn<xrh):
-        a,b,c=5,7,9
-        print("left")
-    else:
-        a,b,c=6,8,10
-        print("right")
-    #print("here")
-        
-    
+            if i == 0:
+                y0 = pt[0]
+                z0 = pt[2]
+            if i == 1:
+                y1 = pt[0]
+                z1 = pt[2]
+            if i == 2:
+                y2 = pt[0]
+                z2 = pt[2]
+            dist = distance(y0, y1, y2, z0, z1, z2, ylw, yrw)
+
+        if exercise_type == 5:
+
+            dist = distance_dumbell(yls, yrs, ylw, yrw)
+
+    return image, dist
+
+
+def draw_points_one_side(image, points, exercise_type, confidence_threshold=0.5):
+
+    # ToDo Shape it taking into account the size of the detection
+    circle_size = max(1, min(image.shape[:2]) // 160)
+    x1 = 0
+    y1 = 0
+    x2 = 0
+    y2 = 0
+    x3 = 0
+    y3 = 0
+    xn = points[0][1]
+    xlh = points[11][1]
+    xrh = points[12][1]
+
+    if exercise_type == 1 or exercise_type == 4:
+        if(xn < xlh or xn < xrh):
+            a, b, c = 5, 7, 9
+        else:
+            a, b, c = 6, 8, 10
+
+    elif exercise_type == 2:
+        if(xn < xlh or xn < xrh):
+            a, b, c = 11, 13, 15
+        else:
+            a, b, c = 12, 14, 16
+
     for i, pt in enumerate(points):
         if pt[2] > confidence_threshold:
-            image = cv2.circle(image, (int(pt[1]), int(pt[0])), circle_size, tuple(colors[i % len(colors)]), -1)
-            font = cv2.FONT_HERSHEY_SIMPLEX 
+            image = cv2.circle(image, (int(pt[1]), int(
+                pt[0])), circle_size, tuple(colors[i % len(colors)]), -1)
+            font = cv2.FONT_HERSHEY_SIMPLEX
             org = (pt[1], pt[0])
             fontScale = 1
             color = (255, 255, 255)
             thickness = 2
-            image = cv2.putText(image, str(i) , org, font,  
-                   fontScale, color, thickness, cv2.LINE_AA)
-           
-        if i==11:
-            x1=pt[1]
-            y1=pt[0] 
+            image = cv2.putText(image, str(i), org, font,
+                                fontScale, color, thickness, cv2.LINE_AA)
+
+        if i == a:
+            x1 = pt[1]
+            y1 = pt[0]
             #print(x1," ",y1)
-        if i==13:
-            x2=pt[1]
-            y2=pt[0]
-            #print(x2," ",y2) 
-        if i==15:
-            x3=pt[1]
-            y3=pt[0]
+        if i == b:
+            x2 = pt[1]
+            y2 = pt[0]
+            #print(x2," ",y2)
+        if i == c:
+            x3 = pt[1]
+            y3 = pt[0]
             #print(x3," ",y3)
-            
-        ang=angle(x1,y1,x2,y2,x3,y3)            
-            
-    return image,ang
 
-def draw_points_pushups(image, points, color_palette='tab20', palette_samples=16, confidence_threshold=0.5):
-    
-    try:
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette).colors) * 255
-        ).astype(np.uint8)[:, ::-1].tolist()
-    except AttributeError:  # if palette has not pre-defined colors
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
-        ).astype(np.uint8)[:, -2::-1].tolist()
+        ang = angle(x1, y1, x2, y2, x3, y3)
 
-    circle_size = max(1, min(image.shape[:2]) // 160)  # ToDo Shape it taking into account the size of the detection
-    # circle_size = max(2, int(np.sqrt(np.max(np.max(points, axis=0) - np.min(points, axis=0)) // 16)))
-    count=0
-    x1=0
-    x2=0
-    y1=0
-    y2=0
-    x3=0
-    y3=0
-    xn=points[0][1]
-    xlh=points[11][1]
-    xrh=points[12][1]
-    if(xn<xlh or xn<xrh):
-        a,b,c=5,7,9
-        print("left")
-    else:
-        a,b,c=6,8,10
-        print("right")
-    #print("here")
-        
-    
-    for i, pt in enumerate(points):
-        if pt[2] > confidence_threshold:
-            image = cv2.circle(image, (int(pt[1]), int(pt[0])), circle_size, tuple(colors[i % len(colors)]), -1)
-            font = cv2.FONT_HERSHEY_SIMPLEX 
-            org = (pt[1], pt[0])
-            fontScale = 1
-            color = (255, 0, 0)
-            thickness = 2
-            image = cv2.putText(image, str(i) , org, font,  
-                   fontScale, color, thickness, cv2.LINE_AA)
-           
-        if i==a:
-            x1=pt[1]
-            y1=pt[0] 
-            #print(x1," ",y1)
-        if i==b:
-            x2=pt[1]
-            y2=pt[0]
-            #print(x2," ",y2) 
-        if i==c:
-            x3=pt[1]
-            y3=pt[0]
-            #print(x3," ",y3)
-            
-        ang=angle(x1,y1,x2,y2,x3,y3)            
-            
-    return image,ang
+    return image, ang
 
 
-def draw_skeleton(image, points, skeleton, color_palette='Set2', palette_samples=8, person_index=0,
-                  confidence_threshold=0.5):
+def draw_skeleton(image, points, skeleton, person_index=0, confidence_threshold=0.5):
     """
     Draws a `skeleton` on `image`.
 
@@ -254,10 +190,6 @@ def draw_skeleton(image, points, skeleton, color_palette='Set2', palette_samples
         skeleton: list of joints to be drawn
             Shape: (nof_joints, 2)
             Format: each joint should contain (point_a, point_b) where `point_a` and `point_b` are an index in `points`
-        color_palette: name of a matplotlib color palette
-            Default: 'Set2'
-        palette_samples: number of different colors sampled from the `color_palette`
-            Default: 8
         person_index: index of the person in `image`
             Default: 0
         confidence_threshold: only points with a confidence higher than this threshold will be drawn. Range: [0, 1]
@@ -267,44 +199,34 @@ def draw_skeleton(image, points, skeleton, color_palette='Set2', palette_samples
         A new image with overlaid joints
 
     """
-    try:
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette).colors) * 255
-        ).astype(np.uint8)[:, ::-1].tolist()
-    except AttributeError:  # if palette has not pre-defined colors
-        colors = np.round(
-            np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
-        ).astype(np.uint8)[:, -2::-1].tolist()
-
     for i, joint in enumerate(skeleton):
         pt1, pt2 = points[joint]
         if pt1[2] > confidence_threshold and pt2[2] > confidence_threshold:
             image = cv2.line(
                 image, (int(pt1[1]), int(pt1[0])), (int(pt2[1]), int(pt2[0])),
-                tuple(colors[person_index % len(colors)]), 2
+                tuple(colors[i % len(colors)]), 2
+                # tuple(colors[person_index % len(colors)]), 2
             )
 
     return image
 
 
-def draw_points_and_skeleton(image, points, skeleton, points_color_palette='tab20', points_palette_samples=16,
-                             skeleton_color_palette='Set2', skeleton_palette_samples=8, person_index=0,
+def draw_points_and_skeleton(image, points, skeleton, person_index=0,
                              confidence_threshold=0.5, exercise_type=1):
-    
-    image = draw_skeleton(image, points, skeleton, color_palette=skeleton_color_palette,
-                          palette_samples=skeleton_palette_samples, person_index=person_index,
+
+    image = draw_skeleton(image, points, skeleton, person_index=person_index,
                           confidence_threshold=confidence_threshold)
-    if exercise_type==1:
-        image,angle = draw_points_pushups(image, points, color_palette=points_color_palette, palette_samples=points_palette_samples,
-                            confidence_threshold=confidence_threshold)
-    if exercise_type==2:
-        image,angle = draw_points_situps(image, points, color_palette=points_color_palette, palette_samples=points_palette_samples,
-                        confidence_threshold=confidence_threshold)
-    if exercise_type==3:
-        image,angle = draw_points_chinups(image, points, color_palette=points_color_palette, palette_samples=points_palette_samples,
-                        confidence_threshold=confidence_threshold)
-        
-    return image,angle
+    # plt.imshow(image)
+    # plt.show()
+
+    if exercise_type == 1 or exercise_type == 2 or str(exercise_type)[0] == str(4):
+        image, angle = draw_points_one_side(
+            image, points, exercise_type,  confidence_threshold=confidence_threshold)
+
+    elif exercise_type == 3 or exercise_type == 5:
+        image, angle = draw_points_front(
+            image, points, exercise_type, confidence_threshold=confidence_threshold)
+    return image, angle
 
 
 def save_images(images, target, joint_target, output, joint_output, joint_visibility, summary_writer=None, step=0,
@@ -349,7 +271,8 @@ def save_images(images, target, joint_target, output, joint_output, joint_visibi
                 # images_ok[i][:, a-1:a+1, b-1:b+1] = torch.tensor([1, 0, 0])
                 images_ok[i][0, a - 1:a + 1, b - 1:b + 1] = 1
                 images_ok[i][1:, a - 1:a + 1, b - 1:b + 1] = 0
-    grid_gt = torchvision.utils.make_grid(images_ok, nrow=int(images_ok.shape[0] ** 0.5), padding=2, normalize=False)
+    grid_gt = torchvision.utils.make_grid(images_ok, nrow=int(
+        images_ok.shape[0] ** 0.5), padding=2, normalize=False)
     if summary_writer is not None:
         summary_writer.add_image(prefix + 'images', grid_gt, global_step=step)
 
@@ -369,40 +292,51 @@ def save_images(images, target, joint_target, output, joint_output, joint_visibi
                 # images_ok[i][:, a-1:a+1, b-1:b+1] = torch.tensor([1, 0, 0])
                 images_ok[i][0, a - 1:a + 1, b - 1:b + 1] = 1
                 images_ok[i][1:, a - 1:a + 1, b - 1:b + 1] = 0
-    grid_pred = torchvision.utils.make_grid(images_ok, nrow=int(images_ok.shape[0] ** 0.5), padding=2, normalize=False)
+    grid_pred = torchvision.utils.make_grid(images_ok, nrow=int(
+        images_ok.shape[0] ** 0.5), padding=2, normalize=False)
     if summary_writer is not None:
-        summary_writer.add_image(prefix + 'predictions', grid_pred, global_step=step)
+        summary_writer.add_image(
+            prefix + 'predictions', grid_pred, global_step=step)
 
     return grid_gt, grid_pred
-   
 
-def angle(x1,y1,x2,y2,x3,y3):
-    a=math.sqrt((x3-x2)**2+(y3-y2)**2)
-    b=math.sqrt((x3-x1)**2+(y3-y1)**2)
-    c=math.sqrt((x2-x1)**2+(y2-y1)**2)
-    if a==0 or c==0:
-        angle=0
+
+def angle(x1, y1, x2, y2, x3, y3):
+    a = math.sqrt((x3-x2)**2+(y3-y2)**2)
+    b = math.sqrt((x3-x1)**2+(y3-y1)**2)
+    c = math.sqrt((x2-x1)**2+(y2-y1)**2)
+    if a == 0 or c == 0:
+        angle = 0
         return angle
     else:
-        term=(a**2+c**2-b**2)/(2*c*a)
-        angle_rad=math.acos(term)
-        angle=(180*angle_rad)/(math.pi)
+        term = (a**2+c**2-b**2)/(2*c*a)
+        angle_rad = math.acos(term)
+        angle = (180*angle_rad)/(math.pi)
     return angle
 
-def distance(y1,y2,y3,z1,z2,z3,ylw,yrw):
-    t1,t2,t3=0,0,0
-    if(z1>0.5 and y1>ylw and y1>yrw):
-        t1=1
-    if(z2>0.5 and y2>ylw and y2>yrw):
-        t2=1
-    if(z3>0.5 and y3>ylw and y3>yrw):
-        t3=1
-        
-    if(t1==1 and t2==1):
+
+def distance(y0, y1, y2, z0, z1, z2, ylw, yrw):
+    t1, t2, t3 = 0, 0, 0
+    if(z0 > 0.5 and y0 > ylw and y0 > yrw):
+        t1 = 1
+    if(z1 > 0.5 and y1 > ylw and y1 > yrw):
+        t2 = 1
+    if(z2 > 0.5 and y2 > ylw and y2 > yrw):
+        t3 = 1
+
+    if(t1 == 1 and t2 == 1):
         return 1
-    if(t1==1 and t3==1):
+    if(t1 == 1 and t3 == 1):
         return 1
-    if(t1==2 and t3==1):
+    if(t2 == 1 and t3 == 1):
         return 1
-    
+
+    return -1
+
+
+def distance_dumbell(yls, yrs, ylw, yrw):
+    if (yrs > yrw):
+        return 1
+    if (yls > ylw):
+        return 1
     return -1
