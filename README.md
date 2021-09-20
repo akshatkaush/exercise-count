@@ -35,7 +35,7 @@ To run the application run start-count.py and give filename with type of exercis
 4-Dumbell Curl<br/>
 5-Side Dumbell Lateral<br/>
 
-For running the application you need to add the weight folder in the main directory which can be downloaded from [google drive](https://drive.google.com/drive/folders/1GDE8TySO5LBN6doJtW9DvAbtu-av1ivI?usp=sharing). 
+For running the application you need to add the weights folder in the main directory which can be downloaded from [google drive](https://drive.google.com/drive/folders/1GDE8TySO5LBN6doJtW9DvAbtu-av1ivI?usp=sharing). 
 
 <br/>
 
@@ -51,7 +51,7 @@ Sample input video and weights for the pipeline can be found at
 
 <img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/push_up_sample2.PNG?raw=true" width="568.5" height="286.5">
 
-<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/frame.PNG?raw=true">
+<img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/frame.png?raw=true">
 
 <img src="https://github.com/akshatkaush/exercise-count/blob/master/New%20folder/websample.PNG?raw=true" width="568.5" height="286.5">
 
