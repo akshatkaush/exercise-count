@@ -1,9 +1,7 @@
 Sample Video- https://www.youtube.com/watch?v=djHRAaRSIzs
 
 
-This projects couts the repetitions of common exercises. Here I have provided support for pushups, chinups and squats. It can also tell whether you are doing a complete rep or an incomplete repetition. It can be extended to other exercises as well and they can be auto detected by just noting the angles between different joints.
-This projects counts the repetitions of common exercises. Here I have provided support for pushups, chinups, squats, sidecurl and dumbell curl. It can also tell whether you are doing a complete rep or an incomplete repetition. It can be extended to other exercises as well and they can be auto detected by just noting the angles between different joints.
-The model is also scalable to multi person estimation.
+This projects counts the repetitions of common exercises. Here I have provided support for pushups, chinups, squats, dumbellcurls and dumbell-side-lateral. It can also tell whether you are doing a complete rep or an incomplete repetition. It can be extended to other exercises as well and they can be auto detected by just noting the angles between different joints. The model is also scalable to multi person estimation.
 
 Here I used pose_hrnet_w48_256*192 pretrained on COCO dataset with 17 joints. 
 The model works irrespective of the direction of the camera except from the back side. 
